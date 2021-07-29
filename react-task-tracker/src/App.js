@@ -1,12 +1,39 @@
 import './App.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {BrowserRouter as Router, Route} from 'react-router-dom';
 import Header from './componentes/Header/header';
 import Tasks from './componentes/Tasks/tasks';
 import AddTask from './componentes/addTask/addTask';
+import Footer from './componentes/Footer/footer';
+import About from './componentes/About/about';
 
 function App() {
   const [showAddTask,setShowAddTast] = useState(false);
-  const [tasks, setTasks] = useState ([
+  const [tasks, setTasks] = useState ([]);
+
+  useEffect(()=> {
+    const getTasks = async () => {
+      const tasksFromServer = await fetchTasks();
+      setTasks(tasksFromServer);
+    }
+    getTasks();
+  }, []);
+
+  //fetch data
+  const fetchTasks = async() => {
+    const res = await fetch('http://localhost:5000/tasks');
+    const data = await res.json();
+    return data;
+  }
+
+  const fetchTask = async(id) => {
+    const res = await fetch(`http://localhost:5000/tasks/${id}`);
+    const data = await res.json();
+    return data;
+  }
+
+ /*
+ 
     {
       "id": 1,
       "text": "Doctors Appointment",
@@ -25,46 +52,82 @@ function App() {
       "day": "Feb 5th at 2:30pm",
       "reminder": false
     }
-  ]);
+  
+ 
+ */
+  const addTask = async(task) => {
+    const res = await fetch(`http://localhost:5000/tasks`,{
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(task)
+    });
 
-  const addTask = (task) => {
-    const id = Math.floor(Math.random() * 10000) + 1;
+    const data = await res.json();
+    setTasks([...tasks, data]);
+
+    /*const id = Math.floor(Math.random() * 10000) + 1;
     const newTask = {id, ...task};
-    setTasks([...tasks, newTask]);
+    setTasks([...tasks, newTask]);*/
   }
 
-  const deleteTask = (id) => {
+  const deleteTask = async (id) => {
+    await fetch(`http://localhost:5000/tasks/${id}`,{
+      method: 'DELETE'
+    });
     setTasks(tasks.filter((task)=>{ 
         return task.id !== id
     }));
   }
 
   //reminder
-  const toggleReminder = (id) => {
+  const toggleReminder = async(id) => {
+    const taskToToggle = await fetchTask(id);
+    const updtTask = {...taskToToggle,reminder: !taskToToggle.reminder};
+    const res = await fetch(`http://localhost:5000/tasks/${id}`,{
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updtTask)
+    });
+    const data = await res.json();
+
     setTasks(
       tasks.map((task) => 
         task.id === id? 
-        {...task,reminder:!task.reminder}: task
+        {...task,reminder: data.reminder}: task
       )
     );
   }
 
   return (
+    <Router>
     <div className="container">
       <Header onAdd={()=>setShowAddTast(!showAddTask)}
               showAdd={showAddTask} />
+      
+      <Route path='/' exact render={(props) => (
+        <>
       {
         showAddTask && <AddTask onAdd={addTask} />
       }
       {
-        tasks.length > 0 ?
+        tasks.length > 0 ?(
         <Tasks tasks={tasks}
               onDelete={deleteTask}
               onToggle={toggleReminder} />
-        :
+              ):(
         'No tasks avalaible'
-            }
+        )}
+        </>
+      )} 
+    />
+    <Route path='/about' component={About} />
+    <Footer/>
     </div>
+    </Router>
   );
 }
 

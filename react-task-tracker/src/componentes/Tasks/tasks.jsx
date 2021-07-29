@@ -5,8 +5,8 @@ function Tasks({tasks, onDelete, onToggle}) {
 
     return (
         <Fragment>
-            {tasks.map((task) => {
-                return <Task key={task.id}
+            {tasks.map((task, index) => {
+                return <Task key={index}
                              task={task}
                              onDelete={onDelete}
                              onToggle={onToggle} />
